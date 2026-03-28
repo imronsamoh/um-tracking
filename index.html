@@ -184,6 +184,29 @@
     </div>
   </div>
 
+  <!-- Floating QR Button (อยู่นอก iframe ใช้ได้เสมอ) -->
+<button id="floatingQR" onclick="openNativeQR()" style="
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  z-index: 300;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: #0a0a0a;
+  color: #fff;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+" ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform='scale(1)'">
+  <i class="fa-solid fa-qrcode"></i>
+</button>
+  
   <!-- Offline -->
   <div id="offline">ไม่มีการเชื่อมต่ออินเทอร์เน็ต</div>
 
@@ -230,6 +253,41 @@
       }
     });
 
+    // วิธีที่ 2: Inject listener เข้า iframe หลังโหลดเสร็จ
+frame.addEventListener('load', function() {
+  // Splash
+  document.getElementById('splashStatus').textContent = 'พร้อมใช้งาน';
+  setTimeout(function() {
+    splash.classList.add('hide');
+    setTimeout(function() { splash.style.display = 'none'; }, 500);
+  }, 300);
+  
+  // พยายาม inject QR button handler เข้า iframe
+  try {
+    var iframeDoc = frame.contentDocument || frame.contentWindow.document;
+    
+    // คอยจับปุ่ม QR scan ที่ถูกกดใน iframe
+    iframeDoc.addEventListener('click', function(e) {
+      var target = e.target;
+      // วนหา parent จนเจอ bnav-scan
+      for (var i = 0; i < 5; i++) {
+        if (!target) break;
+        if (target.classList && (target.classList.contains('bnav-scan') || target.classList.contains('bnav-scan-inner'))) {
+          e.preventDefault();
+          e.stopPropagation();
+          openNativeQR();
+          return;
+        }
+        target = target.parentElement;
+      }
+    }, true);
+    
+    console.log('✅ QR button handler injected');
+  } catch(e) {
+    console.log('Cannot inject into iframe (cross-origin):', e.message);
+  }
+});
+    
     function openNativeQR() {
       document.getElementById('qrOverlay').classList.add('active');
       document.getElementById('nativeQRInput').value = '';
