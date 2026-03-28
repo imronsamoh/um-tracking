@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>สแกน QR - UM Tracking</title>
+  <link rel="icon" href="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/favicon.ico">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#000;color:#fff;font-family:-apple-system,'Helvetica Neue',sans-serif;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+    .top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px}
+    .top h3{font-size:16px;font-weight:600}
+    .close-btn{width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .camera-area{flex:1;position:relative;overflow:hidden}
+    #reader{width:100%;height:100%}
+    #reader video{object-fit:cover!important;width:100%!important;height:100%!important}
+    #reader img[alt="Info icon"]{display:none!important}
+    .scan-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:240px;height:240px;border:2px solid rgba(255,255,255,.3);border-radius:20px;pointer-events:none;z-index:10}
+    .scan-frame::before,.scan-frame::after{content:'';position:absolute;width:30px;height:30px;border:3px solid #fff}
+    .scan-frame::before{top:-2px;left:-2px;border-right:none;border-bottom:none;border-radius:8px 0 0 0}
+    .scan-frame::after{bottom:-2px;right:-2px;border-left:none;border-top:none;border-radius:0 0 8px 0}
+    .scan-line{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:220px;height:2px;background:linear-gradient(90deg,transparent,#22c55e,transparent);animation:scanMove 2s ease-in-out infinite;z-index:11}
+    @keyframes scanMove{0%,100%{margin-top:-100px}50%{margin-top:100px}}
+    .bottom{padding:20px 16px 32px;text-align:center}
+    .manual{display:flex;gap:8px;max-width:320px;margin:12px auto 0}
+    .manual input{flex:1;padding:12px 14px;border:none;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;font-size:14px;outline:none}
+    .manual input::placeholder{color:rgba(255,255,255,.4)}
+    .manual button{padding:12px 20px;background:#fff;color:#000;border:none;border-radius:10px;font-weight:600;cursor:pointer}
+    .status{color:rgba(255,255,255,.5);font-size:13px;margin-top:8px;min-height:20px}
+    .success-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:50}
+    .success-overlay i{font-size:56px;color:#22c55e;margin-bottom:16px}
+    .success-overlay .job-id{font-size:24px;font-weight:700}
+    .success-overlay .sub{font-size:13px;color:rgba(255,255,255,.5);margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h3><i class="fa-solid fa-qrcode"></i> สแกน QR Code</h3>
+    <button class="close-btn" onclick="goBack()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  
+  <div class="camera-area">
+    <div id="reader"></div>
+    <div class="scan-frame"></div>
+    <div class="scan-line"></div>
+  </div>
+  
+  <div class="bottom">
+    <p style="color:rgba(255,255,255,.5);font-size:13px">หรือพิมพ์ Job ID</p>
+    <div class="manual">
+      <input type="text" id="manualInput" placeholder="เช่น G68-0001" autocapitalize="characters"
+             onkeydown="if(event.key==='Enter') manualSearch()">
+      <button onclick="manualSearch()">ค้นหา</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    // ดึง Apps Script URL จาก parameter
+    var params = new URLSearchParams(window.location.search);
+    var appUrl = params.get('appUrl') || '';
+    var returnUrl = params.get('returnUrl') || '';
+    
+    var scanner = null;
+
+    // เริ่มสแกน
+    function startScanner() {
+      try {
+        scanner = new Html5Qrcode('reader');
+        
+        Html5Qrcode.getCameras().then(function(cameras) {
+          if (!cameras || cameras.length === 0) {
+            document.getElementById('status').textContent = 'ไม่พบกล้อง กรุณาพิมพ์ Job ID';
+            return;
+          }
+          
+          // เลือกกล้องหลัง
+          var camId = cameras[cameras.length - 1].id;
+          
+          scanner.start(
+            camId,
+            { fps: 15, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
+            function(decodedText) {
+              // สแกนสำเร็จ!
+              scanner.stop().catch(function(){});
+              showSuccess(decodedText);
+            },
+            function() {}
+          ).catch(function(err) {
+            document.getElementById('status').textContent = 'เปิดกล้องไม่ได้: ' + err;
+          });
+        }).catch(function(err) {
+          document.getElementById('status').textContent = 'ไม่ได้รับอนุญาตใช้กล้อง';
+        });
+      } catch(e) {
+        document.getElementById('status').textContent = 'เกิดข้อผิดพลาด';
+      }
+    }
+
+    function showSuccess(jobId) {
+      var overlay = document.createElement('div');
+      overlay.className = 'success-overlay';
+      overlay.innerHTML = '<i class="fa-solid fa-circle-check"></i>' +
+        '<div class="job-id">' + jobId + '</div>' +
+        '<div class="sub">กำลังเปิดข้อมูล...</div>';
+      document.body.appendChild(overlay);
+      
+      setTimeout(function() {
+        sendResult(jobId);
+      }, 1000);
+    }
+
+    function manualSearch() {
+      var val = document.getElementById('manualInput').value.trim();
+      if (!val) return;
+      sendResult(val);
+    }
+
+    function sendResult(jobId) {
+      // ส่งผลกลับไปยัง Apps Script
+      if (returnUrl) {
+        // วิธีที่ 1: redirect กลับพร้อม parameter
+        window.location.href = returnUrl + '?qrResult=' + encodeURIComponent(jobId);
+      } else if (window.opener) {
+        // วิธีที่ 2: ส่งกลับผ่าน opener
+        window.opener.postMessage({ type: 'QR_RESULT', jobId: jobId }, '*');
+        window.close();
+      } else {
+        // วิธีที่ 3: เก็บลง localStorage แล้วปิด
+        localStorage.setItem('UM_QR_RESULT', jobId);
+        localStorage.setItem('UM_QR_TIME', Date.now().toString());
+        
+        // กลับไปหน้าหลัก
+        if (appUrl) {
+          window.location.href = appUrl;
+        } else {
+          window.history.back();
+        }
+      }
+    }
+
+    function goBack() {
+      if (scanner) {
+        try { scanner.stop().catch(function(){}); } catch(e) {}
+      }
+      
+      if (window.opener) {
+        window.close();
+      } else {
+        window.history.back();
+      }
+    }
+
+    // เริ่มทำงาน
+    startScanner();
+  </script>
+</body>
+</html>
