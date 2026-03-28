@@ -11,13 +11,13 @@
   "lang": "th",
   "icons": [
     {
-      "src": "https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/manifest-UM.png",
+      "src": "https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/UM%20JTacking-01.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/manifest-UM.png",
+      "src": "https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/UM%20JTacking-01.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
