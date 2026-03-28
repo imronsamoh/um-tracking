@@ -12,146 +12,189 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="UM Tracking">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="msapplication-TileColor" content="#ffffff">
-  <meta name="msapplication-TileImage" content="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/manifest-UM.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/favicon.ico">
-  <link rel="shortcut icon" href="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/manifest-UM.png">
   <link rel="apple-touch-icon-precomposed" href="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/manifest-UM.png">
+
+  <!-- QR Scanner Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       overflow: hidden;
       background: #ffffff;
-      font-family: -apple-system, 'Helvetica Neue', sans-serif;
+      font-family: 'IBM Plex Sans Thai', -apple-system, sans-serif;
     }
 
-    /* Splash Screen */
+    /* Splash */
     #splash {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      background: #ffffff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      position: fixed; inset: 0; z-index: 100;
+      background: #fff;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
       transition: opacity 0.4s ease;
     }
-
-    #splash.hide {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    #splash img {
-      width: 72px;
-      height: 72px;
-      margin-bottom: 20px;
-    }
-
-    #splash h1 {
-      font-size: 20px;
-      font-weight: 700;
-      color: #0a0a0a;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-
-    #splash p {
-      font-size: 13px;
-      color: #9ca3af;
-      margin-bottom: 24px;
-    }
-
-    .splash-spinner {
-      width: 28px;
-      height: 28px;
-      border: 3px solid #e5e5e5;
-      border-top-color: #0a0a0a;
-      border-radius: 50%;
-      animation: spin 0.65s linear infinite;
-    }
-
+    #splash.hide { opacity: 0; pointer-events: none; }
+    #splash img { width: 72px; margin-bottom: 20px; }
+    #splash h1 { font-size: 20px; font-weight: 700; color: #0a0a0a; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+    #splash p { font-size: 13px; color: #9ca3af; margin-bottom: 24px; }
+    .splash-spinner { width: 28px; height: 28px; border: 3px solid #e5e5e5; border-top-color: #0a0a0a; border-radius: 50%; animation: spin 0.65s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    .splash-status {
-      margin-top: 16px;
-      font-size: 12px;
-      color: #c4c4c4;
-    }
+    .splash-status { margin-top: 16px; font-size: 12px; color: #c4c4c4; }
 
     /* App iframe */
     #appFrame {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      height: 100dvh;
-      border: none;
-      background: #ffffff;
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%; height: 100dvh;
+      border: none; background: #fff;
     }
 
-    /* Offline Banner */
-    #offline {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 200;
-      background: #1a1a1a;
-      color: #ffffff;
-      text-align: center;
-      padding: 10px 16px;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
+    /* Offline */
+    #offline { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: #1a1a1a; color: #fff; text-align: center; padding: 10px; font-size: 13px; }
     #offline.show { display: block; }
 
-    /* iOS safe area */
-    @supports (padding-top: env(safe-area-inset-top)) {
-      #appFrame {
-        padding-top: env(safe-area-inset-top);
-      }
+    /* ============================================
+       QR SCANNER (อยู่นอก iframe — เข้าถึงกล้องได้)
+       ============================================ */
+    #qrOverlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: #000;
+      display: none; flex-direction: column;
     }
+    #qrOverlay.active { display: flex; }
+
+    .qr-top {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px; color: #fff;
+    }
+    .qr-top h3 { font-size: 16px; font-weight: 600; }
+    .qr-close-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: none; background: rgba(255,255,255,0.15);
+      color: #fff; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .qr-camera-area {
+      flex: 1; position: relative;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+
+    #qrReader {
+      width: 100%; height: 100%;
+    }
+
+    /* ซ่อน UI ของ html5-qrcode */
+    #qrReader img[alt="Info icon"] { display: none !important; }
+    #qrReader #qr-shaded-region { border: none !important; }
+    #qrReader video { object-fit: cover !important; }
+
+    .qr-frame {
+      position: absolute;
+      width: 240px; height: 240px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      pointer-events: none;
+    }
+    .qr-frame::before, .qr-frame::after {
+      content: ''; position: absolute;
+      width: 30px; height: 30px;
+      border: 3px solid #fff;
+    }
+    .qr-frame::before { top: -2px; left: -2px; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
+    .qr-frame::after { bottom: -2px; right: -2px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
+
+    .qr-bottom {
+      padding: 20px 16px 32px; text-align: center;
+    }
+    .qr-manual {
+      display: flex; gap: 8px; max-width: 320px; margin: 12px auto 0;
+    }
+    .qr-manual input {
+      flex: 1; padding: 12px 14px; border: none; border-radius: 10px;
+      background: rgba(255,255,255,0.15); color: #fff; font-size: 14px;
+      outline: none; font-family: 'DM Sans', sans-serif;
+    }
+    .qr-manual input::placeholder { color: rgba(255,255,255,0.4); }
+    .qr-manual button {
+      padding: 12px 20px; background: #fff; color: #000;
+      border: none; border-radius: 10px; font-weight: 600; cursor: pointer;
+    }
+
+    .qr-error-msg {
+      color: rgba(255,255,255,0.5); font-size: 13px;
+      margin-top: 8px; min-height: 20px;
+    }
+
+    /* Scan success animation */
+    .qr-success {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #fff; z-index: 10;
+    }
+    .qr-success i { font-size: 48px; color: #22c55e; margin-bottom: 12px; }
+    .qr-success p { font-size: 18px; font-weight: 700; }
+    .qr-success span { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 4px; }
   </style>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&family=DM+Sans:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
 
-  <!-- Splash Screen -->
+  <!-- Splash -->
   <div id="splash">
-    <img src="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/manifest-UM.png" alt="UM Sport">
+    <img src="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/manifest-UM.png" alt="UM">
     <h1>Tracking Status</h1>
     <p>ระบบติดตามสถานะงานผลิต</p>
     <div class="splash-spinner"></div>
     <div class="splash-status" id="splashStatus">กำลังเชื่อมต่อ...</div>
   </div>
 
-  <!-- App iframe (โหลด Google Apps Script) -->
-  <iframe id="appFrame" allowfullscreen allow="camera *;microphone *;display-capture *" allowusermedia></iframe>
+  <!-- App iframe -->
+  <iframe id="appFrame" allowfullscreen allow="camera *; microphone *" allowusermedia></iframe>
 
-  <!-- Offline Banner -->
+  <!-- QR Scanner (อยู่นอก iframe — เข้าถึงกล้องได้) -->
+  <div id="qrOverlay">
+    <div class="qr-top">
+      <h3><i class="fa-solid fa-qrcode"></i> สแกน QR Code</h3>
+      <button class="qr-close-btn" onclick="closeNativeQR()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="qr-camera-area">
+      <div id="qrReader"></div>
+      <div class="qr-frame"></div>
+    </div>
+    <div class="qr-bottom">
+      <p style="color:rgba(255,255,255,0.5);font-size:13px">หรือพิมพ์ Job ID</p>
+      <div class="qr-manual">
+        <input type="text" id="nativeQRInput" placeholder="เช่น G68-0001" autocapitalize="characters"
+               onkeydown="if(event.key==='Enter') nativeQRSearch()">
+        <button onclick="nativeQRSearch()">ค้นหา</button>
+      </div>
+      <div class="qr-error-msg" id="qrErrorMsg"></div>
+    </div>
+  </div>
+
+  <!-- Offline -->
   <div id="offline">ไม่มีการเชื่อมต่ออินเทอร์เน็ต</div>
 
   <script>
     // ============================================
-    // CONFIG: ใส่ URL ของ Google Apps Script ที่นี่
+    // CONFIG
     // ============================================
-    var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzoTnRNgbF7z8cNbKbSvnEQ7dR-wJ9vg-pK49bRhRDvHuokjy-bkATYbzLhdC_iaY1u/exec';
-    // ตัวอย่าง: 'https://script.google.com/macros/s/AKfycbx.../exec'
+    var APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_DEPLOY_URL_HERE';
     // ============================================
 
-    // Register Service Worker
+    // Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(function() {});
     }
@@ -159,48 +202,116 @@
     // Load App
     var frame = document.getElementById('appFrame');
     var splash = document.getElementById('splash');
-    var status = document.getElementById('splashStatus');
 
-    // เมื่อ iframe โหลดเสร็จ → ซ่อน splash
     frame.addEventListener('load', function() {
-      status.textContent = 'พร้อมใช้งาน';
+      document.getElementById('splashStatus').textContent = 'พร้อมใช้งาน';
       setTimeout(function() {
         splash.classList.add('hide');
         setTimeout(function() { splash.style.display = 'none'; }, 500);
       }, 300);
     });
 
-    // Error handling
-    frame.addEventListener('error', function() {
-      status.textContent = 'เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง...';
-      setTimeout(function() { frame.src = APPS_SCRIPT_URL; }, 3000);
-    });
-
-    // Start loading
-    status.textContent = 'กำลังโหลดระบบ...';
+    document.getElementById('splashStatus').textContent = 'กำลังโหลดระบบ...';
     frame.src = APPS_SCRIPT_URL;
 
-    // Timeout fallback (ถ้าโหลดนานเกิน 15 วิ)
-    setTimeout(function() {
-      if (!splash.classList.contains('hide')) {
-        status.textContent = 'โหลดช้ากว่าปกติ กรุณารอสักครู่...';
-      }
-    }, 15000);
+    // Offline
+    window.addEventListener('offline', function() { document.getElementById('offline').classList.add('show'); });
+    window.addEventListener('online', function() { document.getElementById('offline').classList.remove('show'); });
 
-    // Offline detection
-    window.addEventListener('offline', function() {
-      document.getElementById('offline').classList.add('show');
-    });
-    window.addEventListener('online', function() {
-      document.getElementById('offline').classList.remove('show');
+    // ============================================
+    // QR SCANNER (ทำงานนอก iframe — เข้าถึงกล้องได้)
+    // ============================================
+    var nativeQrScanner = null;
+
+    // รับ message จาก iframe เมื่อกดปุ่ม QR
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'OPEN_QR_SCANNER') {
+        openNativeQR();
+      }
     });
 
-    // Prevent pull-to-refresh on iOS (ป้องกันดึงหน้าจอ refresh)
-    document.addEventListener('touchmove', function(e) {
-      if (e.target === document.body || e.target === document.documentElement) {
-        e.preventDefault();
+    function openNativeQR() {
+      document.getElementById('qrOverlay').classList.add('active');
+      document.getElementById('nativeQRInput').value = '';
+      document.getElementById('qrErrorMsg').textContent = '';
+      startNativeQR();
+    }
+
+    function closeNativeQR() {
+      stopNativeQR();
+      document.getElementById('qrOverlay').classList.remove('active');
+    }
+
+    function startNativeQR() {
+      var readerEl = document.getElementById('qrReader');
+      readerEl.innerHTML = '';
+
+      try {
+        nativeQrScanner = new Html5Qrcode('qrReader');
+
+        Html5Qrcode.getCameras().then(function(cameras) {
+          if (cameras && cameras.length > 0) {
+            var cameraId = cameras[cameras.length - 1].id;
+
+            nativeQrScanner.start(
+              cameraId,
+              { fps: 10, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
+              function(decodedText) {
+                // สำเร็จ!
+                stopNativeQR();
+                showQRSuccess(decodedText);
+              },
+              function() {}
+            ).catch(function(err) {
+              document.getElementById('qrErrorMsg').textContent = 'ไม่สามารถเปิดกล้องได้ กรุณาพิมพ์ Job ID';
+            });
+          } else {
+            document.getElementById('qrErrorMsg').textContent = 'ไม่พบกล้อง กรุณาพิมพ์ Job ID';
+          }
+        }).catch(function() {
+          document.getElementById('qrErrorMsg').textContent = 'ไม่ได้รับอนุญาตใช้กล้อง กรุณาพิมพ์ Job ID';
+        });
+      } catch(e) {
+        document.getElementById('qrErrorMsg').textContent = 'เกิดข้อผิดพลาด กรุณาพิมพ์ Job ID';
       }
-    }, { passive: false });
+    }
+
+    function stopNativeQR() {
+      if (nativeQrScanner) {
+        try { nativeQrScanner.stop().catch(function() {}); } catch(e) {}
+        nativeQrScanner = null;
+      }
+    }
+
+    function showQRSuccess(jobId) {
+      var area = document.querySelector('.qr-camera-area');
+      var successDiv = document.createElement('div');
+      successDiv.className = 'qr-success';
+      successDiv.innerHTML = '<i class="fa-solid fa-circle-check"></i><p>' + jobId + '</p><span>กำลังเปิด...</span>';
+      area.appendChild(successDiv);
+
+      setTimeout(function() {
+        successDiv.remove();
+        closeNativeQR();
+        sendJobIdToApp(jobId);
+      }, 1000);
+    }
+
+    function nativeQRSearch() {
+      var input = document.getElementById('nativeQRInput').value.trim();
+      if (!input) return;
+      closeNativeQR();
+      sendJobIdToApp(input);
+    }
+
+    function sendJobIdToApp(jobId) {
+      // ส่ง message ไปยัง iframe
+      var appFrame = document.getElementById('appFrame');
+      appFrame.contentWindow.postMessage({
+        type: 'QR_SCANNED',
+        jobId: jobId
+      }, '*');
+    }
   </script>
 
 </body>
