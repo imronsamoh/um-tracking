@@ -79,9 +79,9 @@
           // เลือกกล้องหลัง
           var camId = cameras[cameras.length - 1].id;
           
-          scanner.start(
-            camId,
-            { fps: 15, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
+        scanner.start(
+          { facingMode: "environment" },  // ← ใช้แทน camId
+          { fps: 15, qrbox: { width: 220, height: 220 } },
             function(decodedText) {
               // สแกนสำเร็จ!
               scanner.stop().catch(function(){});
