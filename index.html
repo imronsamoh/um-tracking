@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>UM Tracking Status</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="UM Tracking">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/manifest-UM.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/favicon.ico">
+  <link rel="shortcut icon" href="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/manifest-UM.png">
+  <link rel="apple-touch-icon-precomposed" href="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/manifest-UM.png">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #ffffff;
+      font-family: -apple-system, 'Helvetica Neue', sans-serif;
+    }
+
+    /* Splash Screen */
+    #splash {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.4s ease;
+    }
+
+    #splash.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #splash img {
+      width: 72px;
+      height: 72px;
+      margin-bottom: 20px;
+    }
+
+    #splash h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0a0a0a;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    #splash p {
+      font-size: 13px;
+      color: #9ca3af;
+      margin-bottom: 24px;
+    }
+
+    .splash-spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid #e5e5e5;
+      border-top-color: #0a0a0a;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .splash-status {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #c4c4c4;
+    }
+
+    /* App iframe */
+    #appFrame {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      border: none;
+      background: #ffffff;
+    }
+
+    /* Offline Banner */
+    #offline {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 200;
+      background: #1a1a1a;
+      color: #ffffff;
+      text-align: center;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    #offline.show { display: block; }
+
+    /* iOS safe area */
+    @supports (padding-top: env(safe-area-inset-top)) {
+      #appFrame {
+        padding-top: env(safe-area-inset-top);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Splash Screen -->
+  <div id="splash">
+    <img src="https://cdn.jsdelivr.net/gh/imronsamoh/UM-Logo@main/manifest-UM.png" alt="UM Sport">
+    <h1>Tracking Status</h1>
+    <p>ระบบติดตามสถานะงานผลิต</p>
+    <div class="splash-spinner"></div>
+    <div class="splash-status" id="splashStatus">กำลังเชื่อมต่อ...</div>
+  </div>
+
+  <!-- App iframe (โหลด Google Apps Script) -->
+  <iframe id="appFrame" allowfullscreen allow="camera;microphone"></iframe>
+
+  <!-- Offline Banner -->
+  <div id="offline">ไม่มีการเชื่อมต่ออินเทอร์เน็ต</div>
+
+  <script>
+    // ============================================
+    // CONFIG: ใส่ URL ของ Google Apps Script ที่นี่
+    // ============================================
+    var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzoTnRNgbF7z8cNbKbSvnEQ7dR-wJ9vg-pK49bRhRDvHuokjy-bkATYbzLhdC_iaY1u/exec';
+    // ตัวอย่าง: 'https://script.google.com/macros/s/AKfycbx.../exec'
+    // ============================================
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(function() {});
+    }
+
+    // Load App
+    var frame = document.getElementById('appFrame');
+    var splash = document.getElementById('splash');
+    var status = document.getElementById('splashStatus');
+
+    // เมื่อ iframe โหลดเสร็จ → ซ่อน splash
+    frame.addEventListener('load', function() {
+      status.textContent = 'พร้อมใช้งาน';
+      setTimeout(function() {
+        splash.classList.add('hide');
+        setTimeout(function() { splash.style.display = 'none'; }, 500);
+      }, 300);
+    });
+
+    // Error handling
+    frame.addEventListener('error', function() {
+      status.textContent = 'เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง...';
+      setTimeout(function() { frame.src = APPS_SCRIPT_URL; }, 3000);
+    });
+
+    // Start loading
+    status.textContent = 'กำลังโหลดระบบ...';
+    frame.src = APPS_SCRIPT_URL;
+
+    // Timeout fallback (ถ้าโหลดนานเกิน 15 วิ)
+    setTimeout(function() {
+      if (!splash.classList.contains('hide')) {
+        status.textContent = 'โหลดช้ากว่าปกติ กรุณารอสักครู่...';
+      }
+    }, 15000);
+
+    // Offline detection
+    window.addEventListener('offline', function() {
+      document.getElementById('offline').classList.add('show');
+    });
+    window.addEventListener('online', function() {
+      document.getElementById('offline').classList.remove('show');
+    });
+
+    // Prevent pull-to-refresh on iOS (ป้องกันดึงหน้าจอ refresh)
+    document.addEventListener('touchmove', function(e) {
+      if (e.target === document.body || e.target === document.documentElement) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  </script>
+
+</body>
+</html>
