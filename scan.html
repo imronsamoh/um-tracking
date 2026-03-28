@@ -80,7 +80,7 @@
           var camId = cameras[cameras.length - 1].id;
           
         scanner.start(
-          { facingMode: "environment" },  // ← ใช้แทน camId
+          { facingMode: { exact: "environment" }, zoom: 1.0 }  // ← ใช้แทน camId
           { fps: 15, qrbox: { width: 220, height: 220 } },
             function(decodedText) {
               // สแกนสำเร็จ!
