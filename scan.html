@@ -55,6 +55,21 @@
       <button onclick="manualSearch()">ค้นหา</button>
     </div>
     <div class="status" id="status"></div>
+
+    <button onclick="goBack()" style="
+  margin-top:16px;
+  padding:14px 32px;
+  background:rgba(255,255,255,0.15);
+  color:#fff;
+  border:1px solid rgba(255,255,255,0.3);
+  border-radius:12px;
+  font-size:15px;
+  font-weight:600;
+  cursor:pointer;
+  width:100%;
+  max-width:320px;
+"><i class="fa-solid fa-arrow-left" style="margin-right:8px"></i> กลับไปหน้าแอพ</button>
+    
   </div>
 
   <script>
@@ -142,17 +157,25 @@
     }
 
     function goBack() {
-      if (scanner) {
-        try { scanner.stop().catch(function(){}); } catch(e) {}
-      }
-      
-      if (window.opener) {
-        window.close();
-      } else {
-        window.history.back();
-      }
+    // หยุดกล้องก่อน
+    if (scanner) {
+      try { scanner.stop().catch(function(){}); } catch(e) {}
+      scanner = null;
     }
-
+    
+    // พยายามปิดแท็บ
+    try {
+      window.close();
+    } catch(e) {}
+    
+    // ถ้าปิดไม่ได้ (browser บล็อก) → กลับไปหน้าหลัก
+    setTimeout(function() {
+      // ถ้ายังไม่ปิด แสดงว่า browser บล็อก window.close()
+      // redirect กลับหน้าหลักแทน
+      var mainUrl = window.location.href.replace('scan.html', 'index.html').split('?')[0];
+      window.location.href = mainUrl;
+    }, 500);
+  }
     // เริ่มทำงาน
     startScanner();
   </script>
