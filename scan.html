@@ -68,7 +68,7 @@
   cursor:pointer;
   width:100%;
   max-width:320px;
-"><i class="fa-solid fa-arrow-left" style="margin-right:8px"></i> กลับไปหน้าแอพ</button>
+">กลับไปหน้าแอพ</button>
     
   </div>
 
@@ -95,7 +95,7 @@
           var camId = cameras[cameras.length - 1].id;
           
         scanner.start(
-          { facingMode: { exact: "environment" }, zoom: 1.0 }  // ← ใช้แทน camId
+          { facingMode: "environment" },
           { fps: 15, qrbox: { width: 220, height: 220 } },
             function(decodedText) {
               // สแกนสำเร็จ!
@@ -157,25 +157,31 @@
     }
 
     function goBack() {
-    // หยุดกล้องก่อน
-    if (scanner) {
-      try { scanner.stop().catch(function(){}); } catch(e) {}
-      scanner = null;
+  if (scanner) {
+    try { 
+      scanner.stop().then(function() {
+        doClose();
+      }).catch(function() {
+        doClose();
+      });
+    } catch(e) {
+      doClose();
     }
-    
-    // พยายามปิดแท็บ
-    try {
-      window.close();
-    } catch(e) {}
-    
-    // ถ้าปิดไม่ได้ (browser บล็อก) → กลับไปหน้าหลัก
-    setTimeout(function() {
-      // ถ้ายังไม่ปิด แสดงว่า browser บล็อก window.close()
-      // redirect กลับหน้าหลักแทน
-      var mainUrl = window.location.href.replace('scan.html', 'index.html').split('?')[0];
-      window.location.href = mainUrl;
-    }, 500);
+  } else {
+    doClose();
   }
+}
+
+function doClose() {
+  try {
+    window.close();
+  } catch(e) {}
+  
+  setTimeout(function() {
+    var mainUrl = window.location.href.split('scan.html')[0] + 'index.html';
+    window.location.href = mainUrl;
+  }, 500);
+}
     // เริ่มทำงาน
     startScanner();
   </script>
